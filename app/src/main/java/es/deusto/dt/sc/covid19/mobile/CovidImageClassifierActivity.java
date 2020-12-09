@@ -50,7 +50,6 @@ public class CovidImageClassifierActivity extends AppCompatActivity {
     private static final int NUM_THREADS = 4;
 
     private FirebaseCustomRemoteModel mRemoteModel;
-    private FirebaseModelDownloadConditions mModelDownloadConditions;
     private Interpreter mInterpreter;
 
     private Bitmap mBitmap;
@@ -72,30 +71,10 @@ public class CovidImageClassifierActivity extends AppCompatActivity {
         mTextView = findViewById(R.id.prediction);
 
         mRemoteModel = new FirebaseCustomRemoteModel.Builder(MODEL_NAME).build();
-        mModelDownloadConditions = new FirebaseModelDownloadConditions.Builder().requireWifi().build();
-        FirebaseModelManager.getInstance().download(mRemoteModel, mModelDownloadConditions)
-                .addOnSuccessListener(new OnSuccessListener<Void>() {
-                    @Override
-                    public void onSuccess(Void v) {
-                        // Download complete. Depending on your app, you could enable
-                        // the ML feature, or switch from the local model to the remote
-                        // model, etc.
-                        Log.d(TAG, "Downloaded model!");
-                    }
-                });
-        FirebaseModelManager.getInstance().getLatestModelFile(mRemoteModel)
-                .addOnCompleteListener(new OnCompleteListener<File>() {
-                    @Override
-                    public void onComplete(@NonNull Task<File> task) {
-                        File modelFile = task.getResult();
-                        if (modelFile != null) {
-                            Interpreter.Options options = new Interpreter.Options();
-                            options.setNumThreads(NUM_THREADS);
-                            mInterpreter = new Interpreter(modelFile);
-                            Log.d(TAG, "Constructed interpreter!");
-                        }
-                    }
-                });
+
+        downloadModel();
+
+        constructInterpreter();
 
         // LOAD SAMPLE IMAGE TO CLASSIFY -------------------------------------------------------
         mBitmap = getBitmapFromAsset(this, SAMPLE_IMAGE);
@@ -132,6 +111,36 @@ public class CovidImageClassifierActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    private void constructInterpreter() {
+        FirebaseModelManager.getInstance().getLatestModelFile(mRemoteModel)
+                .addOnCompleteListener(new OnCompleteListener<File>() {
+                    @Override
+                    public void onComplete(@NonNull Task<File> task) {
+                        File modelFile = task.getResult();
+                        if (modelFile != null) {
+                            Interpreter.Options options = new Interpreter.Options();
+                            options.setNumThreads(NUM_THREADS);
+                            mInterpreter = new Interpreter(modelFile, options);
+                            Log.d(TAG, "Constructed interpreter!");
+                        }
+                    }
+                });
+    }
+
+    private void downloadModel() {
+        FirebaseModelDownloadConditions modelDownloadConditions = new FirebaseModelDownloadConditions.Builder().requireWifi().build();
+        FirebaseModelManager.getInstance().download(mRemoteModel, modelDownloadConditions)
+                .addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void v) {
+                        // Download complete. Depending on your app, you could enable
+                        // the ML feature, or switch from the local model to the remote
+                        // model, etc.
+                        Log.d(TAG, "Downloaded model!");
+                    }
+                });
     }
 
     private void runInterpreter() {
