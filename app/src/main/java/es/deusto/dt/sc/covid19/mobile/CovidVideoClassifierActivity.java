@@ -38,7 +38,7 @@ public class CovidVideoClassifierActivity extends AppCompatActivity {
 
     private static final String TAG = "CovidVideoClassifier";
 
-    private static final String MODEL_NAME = "covid19_model_temp_mobilenetV1";
+    private static final String MODEL_NAME = "covid19_model_temp_efficientB1";
     private static final String LABELS_NAME = "labels.txt";
     private static final String SAMPLE_IMAGE = "06_N1_B0_P0_C0_M0_S0_F0044.png";
 
@@ -50,6 +50,9 @@ public class CovidVideoClassifierActivity extends AppCompatActivity {
     private static final int CLASSES = 2;
 
     private static final int NUM_THREADS = 4;
+
+    private static int numberOfInferences = 0;
+    private static long accumulatedInferenceTime = 0;
 
     private FirebaseCustomRemoteModel mRemoteModel;
     private Interpreter mInterpreter;
@@ -74,9 +77,7 @@ public class CovidVideoClassifierActivity extends AppCompatActivity {
 
         mRemoteModel = new FirebaseCustomRemoteModel.Builder(MODEL_NAME).build();
 
-        downloadModel();
-
-        constructInterpreter();
+        downloadModelAndConstructInterpreter();
 
         // LOAD SAMPLE IMAGE TO CLASSIFY -------------------------------------------------------
         mBitmap = getBitmapFromAsset(this, SAMPLE_IMAGE);
@@ -133,16 +134,14 @@ public class CovidVideoClassifierActivity extends AppCompatActivity {
                 });
     }
 
-    private void downloadModel() {
+    private void downloadModelAndConstructInterpreter() {
         FirebaseModelDownloadConditions modelDownloadConditions = new FirebaseModelDownloadConditions.Builder().requireWifi().build();
         FirebaseModelManager.getInstance().download(mRemoteModel, modelDownloadConditions)
                 .addOnSuccessListener(new OnSuccessListener<Void>() {
                     @Override
                     public void onSuccess(Void v) {
-                        // Download complete. Depending on your app, you could enable
-                        // the ML feature, or switch from the local model to the remote
-                        // model, etc.
                         Log.d(TAG, "Downloaded model!");
+                        constructInterpreter();
                     }
                 });
     }
@@ -154,6 +153,9 @@ public class CovidVideoClassifierActivity extends AppCompatActivity {
         final long inferenceTime = SystemClock.uptimeMillis() - startTime;
         Log.d(TAG, "Running interpreter succeeded");
         Log.d(TAG, "Inference time: " + inferenceTime);
+        numberOfInferences += 1;
+        accumulatedInferenceTime += inferenceTime;
+        Log.d(TAG, "Average inference time after " + numberOfInferences + " consecutive inferences: " + (accumulatedInferenceTime / numberOfInferences));
         mOutput.rewind();
         FloatBuffer probabilities = mOutput.asFloatBuffer();
         try {
@@ -169,7 +171,6 @@ public class CovidVideoClassifierActivity extends AppCompatActivity {
             }
             mTextView.setText(formattedResult);
         } catch (IOException e) {
-            // File not found?
         }
     }
 
