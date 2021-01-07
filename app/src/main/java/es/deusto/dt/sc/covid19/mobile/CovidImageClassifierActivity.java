@@ -37,7 +37,7 @@ public class CovidImageClassifierActivity extends AppCompatActivity {
 
     private static final String TAG = "CovidImageClassifier";
 
-    private static final String MODEL_NAME = "covid19_model_mobilenetV1_for_N0_N1";
+    private static final String MODEL_NAME = "covid19_model_mobilenetV1";
     private static final String LABELS_NAME = "labels.txt";
     private static final String SAMPLE_IMAGE = "06_N1_B0_P0_C0_M0_S0_F0044.png";
 
